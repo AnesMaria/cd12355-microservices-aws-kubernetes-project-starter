@@ -7,3 +7,5 @@ deployment/db-secret.local.yaml
 *.zip
 .venv/
 venv/
+
+.DS_Store
