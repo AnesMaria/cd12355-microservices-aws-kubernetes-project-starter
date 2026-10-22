@@ -39,6 +39,9 @@ spec:
             - name: postgresql-storage
               mountPath: /var/lib/postgresql/data
               subPath: pgdata
+            - name: postgresql-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
           readinessProbe:
             exec:
               command:
@@ -55,6 +58,9 @@ spec:
               memory: "512Mi"
               cpu: "500m"
       volumes:
+        - name: postgresql-init
+          configMap:
+            name: coworking-db-init
         - name: postgresql-storage
           persistentVolumeClaim:
             claimName: postgresql-pvc
