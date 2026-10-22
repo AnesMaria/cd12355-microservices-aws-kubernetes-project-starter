@@ -3,6 +3,48 @@ The Coworking Space Service is a set of APIs that enables users to request one-t
 
 For this project, you are a DevOps engineer who will be collaborating with a team that is building an API for business analysts. The API provides business analysts basic analytics data on user activity in the service. The application they provide you functions as expected locally and you are expected to help build a pipeline to deploy it in Kubernetes.
 
+## Implemented AWS EKS deployment (project-specific)
+
+This implementation uses AWS CodeBuild to build `analytics/Dockerfile`, pushes versioned images to Amazon ECR, and deploys Flask plus PostgreSQL on Amazon EKS with separate Deployments and Services. The `deployment/` manifests below are the implemented alternative to the starter Helm walkthrough above, so do not install a second PostgreSQL release with Helm.
+
+**Prerequisites:** AWS CLI and kubectl configured for `us-east-1`, a working EKS node in `Ready` state, the EBS CSI driver with its IAM permissions, and permission to create the Kubernetes resources.
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name coworking-eks
+kubectl get nodes
+# Stop if no node is Ready.
+bash deployment/generate-postgresql-init-configmap.sh
+kubectl apply -f deployment/db-configmap.yaml
+# Create a nonempty password without storing it in Git or shell history:
+read -rsp "PostgreSQL password: " DB_PASSWORD; echo
+kubectl create secret generic coworking-db-secret --from-literal=DB_PASSWORD="$DB_PASSWORD"
+unset DB_PASSWORD
+kubectl apply -f deployment/gp3-storageclass.yaml
+kubectl apply -f deployment/postgresql-init-configmap.yaml
+kubectl apply -f deployment/postgresql-pvc.yaml
+kubectl apply -f deployment/postgresql-service.yaml
+kubectl apply -f deployment/postgresql-deployment.yaml
+kubectl rollout status deployment/postgresql
+kubectl apply -f deployment/coworking-deployment.yaml
+kubectl rollout status deployment/coworking
+# Optionally create a public endpoint (LoadBalancer incurs extra cost):
+# kubectl apply -f deployment/coworking-service.yaml
+kubectl get pods
+kubectl get svc
+kubectl describe svc postgresql-service
+kubectl describe deployment coworking
+```
+
+PostgreSQL loads `1_create_tables.sql`, `2_seed_users.sql`, and `3_seed_tokens.sql` from its ConfigMap only on initial startup with an empty data directory. The database uses the 1 GiB EBS-backed `coworking-gp3` PersistentVolumeClaim and a Kubernetes Secret for the database password. To test the Flask API without creating a paid LoadBalancer, use `kubectl port-forward deployment/coworking 5153:5153` in one terminal and run `curl http://localhost:5153/health_check`, `curl http://localhost:5153/readiness_check`, `curl http://localhost:5153/api/reports/daily_usage`, and `curl http://localhost:5153/api/reports/user_visits` in another.
+
+### Release and observability
+
+Push an application change to GitHub and start `coworking-codebuild` (or use a configured GitHub webhook) to build and push `coworking:1.0.<build-number>` to ECR; update the `image:` tag in `deployment/coworking-deployment.yaml`, apply it, and verify `kubectl rollout status deployment/coworking`. The verified second CodeBuild run succeeded and published `810716384126.dkr.ecr.us-east-1.amazonaws.com/coworking:1.0.2`, while CodeBuild logs are available in CloudWatch at `/aws/codebuild/coworking-codebuild`. Application container logs require additional collection, such as CloudWatch Container Insights, and should not be claimed as present until the agents are healthy and logs are visible.
+
+For a small demonstration, one `t3.medium` node may be sufficient if system pods and workload memory fit, but capacity must be checked before deployment. To limit costs, avoid a public LoadBalancer when port-forwarding suffices, minimize node capacity, monitor CodeBuild/EBS costs, and delete unused EKS/EC2/EBS resources after evidence has been saved.
+
+**Current lab limitation (2026-10-22):** The Udacity AWS organization service-control policy explicitly denies `ec2:DescribeInstances` to the EC2 node role, causing Amazon Linux 2023 `nodeadm` initialization to fail. Consequently, `kubectl get nodes` returned no registered nodes, all system pods were pending, and EBS CSI reported `DEGRADED`, so PostgreSQL and Flask have not been verified running on EKS. The lab administrator must lift the restriction or supply a permitted environment before capturing genuine live EKS application and CloudWatch container-logging evidence.
+
 ## Getting Started
 
 ### Dependencies
