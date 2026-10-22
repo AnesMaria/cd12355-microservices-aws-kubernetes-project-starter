@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: coworking
-          image: REPLACE_WITH_ECR_IMAGE_URI
+          image: 810716384126.dkr.ecr.us-east-1.amazonaws.com/coworking:1.0.1
           imagePullPolicy: Always
           ports:
             - containerPort: 5153
