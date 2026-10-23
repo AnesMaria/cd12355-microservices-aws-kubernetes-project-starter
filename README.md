@@ -20,7 +20,7 @@ The Flask deployment defines CPU and memory requests and limits as well as liven
 Both workloads were verified as `1/1 Running`, and the PostgreSQL persistent volume claim was `Bound`.
 The `/health_check`, `/readiness_check`, `/api/reports/daily_usage`, and `/api/reports/user_visits` endpoints returned HTTP 200 during testing.
 Amazon CloudWatch Container Insights collects application logs in `/aws/containerinsights/coworking-eks/application`, including HTTP 200 health checks and periodic `INFO in app` entries.
-See [the evidence guide](evidence/README.md) for the CloudWatch screenshots and required Kubernetes, ECR, and CodeBuild capture checklist.
+See the [screenshout folder](screenshout/README.md) for the existing CloudWatch screenshots and the remaining Kubernetes, ECR, and CodeBuild screenshot checklist.
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name coworking-eks
