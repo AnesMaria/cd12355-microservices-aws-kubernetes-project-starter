@@ -67,12 +67,12 @@ On 23 October 2026 the four deployed endpoints returned `HTTP/1.1 200 OK`:
 
 The HTTP responses were obtained via the AWS LoadBalancer. The two reporting endpoints returned populated JSON, confirming successful database-backed reporting.
 
-## Reviewer screenshots still required
+## Reviewer screenshots
 
-To meet the Udacity screenshot-specific rubric, upload the **actual AWS CloudShell screenshots** as:
-- `kubernetes-01-pods-running.png`
-- `kubernetes-02-services.png`
-- `kubernetes-03-coworking-deployment.png`
-- `kubernetes-04-postgresql-service.png`
+The required **original screenshots have been uploaded** as:
+- [Pods Running](kubernetes-01-pods-running.png)
+- [Services](kubernetes-02-services.png)
+- [Coworking deployment](kubernetes-03-coworking-deployment.png)
+- [PostgreSQL service](kubernetes-04-postgresql-service.png)
 
-Do not present this transcription as an original console screenshot.
+This transcript is supplementary evidence only and does not replace those actual screenshots.
