@@ -1,56 +1,38 @@
-# Coworking Space Service — My AWS DevOps Implementation
+# Coworking Space Service — AWS DevOps Implementation
 
-## Project Overview
+## Overview
 
-I designed and deployed a cloud-native analytics service using Docker, AWS CodeBuild, Amazon ECR, Amazon EKS, Flask, and PostgreSQL.
+I deployed a Flask analytics API and PostgreSQL database to Amazon EKS using Docker, AWS CodeBuild, Amazon ECR, and Kubernetes.
+The application image is `810716384126.dkr.ecr.us-east-1.amazonaws.com/coworking:1.0.2`.
+The system exposes the Flask API through a Kubernetes LoadBalancer on port `5153` and keeps PostgreSQL internal on port `5432`.
 
-My approach focuses on deployment automation, reproducibility, application reliability, and efficient cloud resource management.
+## Build and deployment
 
-## Architecture and CI/CD
+The source repository is hosted on GitHub, and successful AWS CodeBuild builds have produced versioned images published to Amazon ECR.
+**Builds were started manually because GitHub webhook authentication could not be configured with the permissions available in the AWS training environment, so an automatic GitHub-to-CodeBuild trigger has not been demonstrated.**
+The Flask and PostgreSQL workloads are managed as separate Kubernetes Deployments and Services.
+Non-sensitive database settings come from a ConfigMap, while the password is referenced from a Kubernetes Secret and is not committed to this repository.
+PostgreSQL uses a `5Gi` persistent volume claim backed by the Amazon EBS CSI driver with gp3 storage.
+The Flask deployment defines CPU and memory requests and limits as well as liveness and readiness probes.
 
-The workflow connects GitHub source control, AWS CodeBuild, Docker image creation, Amazon ECR publishing, and Kubernetes deployment.
+## Validation
 
-I use semantic image versioning to improve release traceability and simplify deployment updates.
-
-The validated application image is `810716384126.dkr.ecr.us-east-1.amazonaws.com/coworking:1.0.2`, produced by a successful CodeBuild execution.
-
-## Kubernetes Deployment
-
-I organized the Flask application and PostgreSQL database into independent Kubernetes Deployments and Services.
-
-I configured non-sensitive application settings through ConfigMaps and database credentials through Kubernetes Secrets.
-
-Health and readiness probes allow Kubernetes to verify application availability and database connectivity.
-
-The deployment also defines CPU and memory limits to help control resource consumption.
-
-## Deployment and Validation
-
-To connect to the cluster and inspect the application:
+Both workloads were verified as `1/1 Running`, and the PostgreSQL persistent volume claim was `Bound`.
+The `/health_check`, `/readiness_check`, `/api/reports/daily_usage`, and `/api/reports/user_visits` endpoints returned HTTP 200 during testing.
+Amazon CloudWatch Container Insights collects application logs in `/aws/containerinsights/coworking-eks/application`, including HTTP 200 health checks and periodic `INFO in app` entries.
+See [the evidence guide](evidence/README.md) for the CloudWatch screenshots and required Kubernetes, ECR, and CodeBuild capture checklist.
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name coworking-eks
-kubectl get nodes
 kubectl get pods
 kubectl get svc
-kubectl describe svc postgresql-service
+kubectl get pvc
 kubectl describe deployment coworking
+kubectl describe svc postgresql-service
 ```
 
-The deployment verification confirmed that both application workloads were running with one available replica.
+## Engineering decisions and cost
 
-The `/health_check` and `/readiness_check` endpoints both returned HTTP 200.
-
-## Release Management
-
-To release an updated version, I commit the changes, run the CodeBuild process, verify the ECR image, update the image reference in the Kubernetes manifest, and validate the new rollout.
-
-Build logs are available in AWS CloudWatch, while Kubernetes logs support application-level troubleshooting.
-
-## My Engineering Decisions
-
-I selected `t3.medium` for this demonstration to balance workload requirements and cloud costs.
-
-My cost optimization approach emphasizes reusable Docker images, controlled resource allocation, and cleanup of unnecessary AWS resources.
-
-I would further strengthen the architecture through persistent storage validation, automated testing, centralized application monitoring, and infrastructure as code.
+The demonstration runs on a `t3.medium` worker node with resource limits to keep the workload small.
+EKS, EC2, EBS, CloudWatch, and the LoadBalancer may incur AWS charges until the environment is cleaned up.
+For a production release I would add automatic CI triggering, automated tests, and infrastructure as code once the required permissions are available.
