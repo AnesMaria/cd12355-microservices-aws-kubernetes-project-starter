@@ -9,7 +9,7 @@ The system exposes the Flask API through a Kubernetes LoadBalancer on port `5153
 ## Build and deployment
 
 The source repository is hosted on GitHub, and successful AWS CodeBuild builds have produced versioned images published to Amazon ECR.
-**Builds were started manually because GitHub webhook authentication could not be configured with the permissions available in the AWS training environment, so an automatic GitHub-to-CodeBuild trigger has not been demonstrated.**
+**The two documented successful CodeBuild builds were initiated manually. GitHub PAT authentication and a push webhook have since been configured, but a successful automatically triggered build has not yet been verified.**
 The Flask and PostgreSQL workloads are managed as separate Kubernetes Deployments and Services.
 Non-sensitive database settings come from a ConfigMap, while the password is referenced from a Kubernetes Secret and is not committed to this repository.
 PostgreSQL uses a `5Gi` persistent volume claim backed by the Amazon EBS CSI driver with gp3 storage.
@@ -23,14 +23,19 @@ Amazon CloudWatch Container Insights collects application logs in `/aws/containe
 See the [screenshout folder](screenshout/README.md) for 12 uploaded screenshots covering Kubernetes, CloudWatch, Amazon ECR, and successful CodeBuild builds; the CodeBuild ECR-push log screenshot and automatic GitHub trigger remain outstanding.
 
 
+```bash
 aws eks update-kubeconfig --region us-east-1 --name coworking-eks
 kubectl get pods
 kubectl get svc
 kubectl get pvc
 kubectl describe deployment coworking
 kubectl describe svc postgresql-service
+```
 
-<!-- GitHub webhook test -->
+## GitHub webhook verification
+
+On October 23, 2026, a push webhook targeting AWS CodeBuild was configured for the `main` branch, and GitHub reported a successful initial webhook delivery. A subsequent commit was made to test automatic triggering. **A GitHub-initiated CodeBuild run is not yet confirmed**, because the AWS training account denied `codebuild:ListBuildsForProject` under policy `voc-cancel-cred`.
+
 ## Engineering decisions and cost
 
 The demonstration runs on a `t3.medium` worker node with resource limits to keep the workload small.
