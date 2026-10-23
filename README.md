@@ -31,7 +31,6 @@ kubectl describe deployment coworking
 kubectl describe svc postgresql-service
 
 <!-- GitHub webhook test -->
-
 ## Engineering decisions and cost
 
 The demonstration runs on a `t3.medium` worker node with resource limits to keep the workload small.
