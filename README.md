@@ -22,14 +22,15 @@ The `/health_check`, `/readiness_check`, `/api/reports/daily_usage`, and `/api/r
 Amazon CloudWatch Container Insights collects application logs in `/aws/containerinsights/coworking-eks/application`, including HTTP 200 health checks and periodic `INFO in app` entries.
 See the [screenshout folder](screenshout/README.md) for 12 uploaded screenshots covering Kubernetes, CloudWatch, Amazon ECR, and successful CodeBuild builds; the CodeBuild ECR-push log screenshot and automatic GitHub trigger remain outstanding.
 
-```bash
+
 aws eks update-kubeconfig --region us-east-1 --name coworking-eks
 kubectl get pods
 kubectl get svc
 kubectl get pvc
 kubectl describe deployment coworking
 kubectl describe svc postgresql-service
-```
+
+<!-- GitHub webhook test -->
 
 ## Engineering decisions and cost
 
