@@ -2,26 +2,34 @@
 
 ## Overview
 
-I deployed a Flask analytics API and PostgreSQL database to Amazon EKS using Docker, AWS CodeBuild, Amazon ECR, and Kubernetes.
-The application image is `810716384126.dkr.ecr.us-east-1.amazonaws.com/coworking:1.0.2`.
-The system exposes the Flask API through a Kubernetes LoadBalancer on port `5153` and keeps PostgreSQL internal on port `5432`.
+This project deploys a Flask analytics API and a PostgreSQL database to Amazon EKS using Docker, AWS CodeBuild, Amazon ECR, and Kubernetes. The application deployment was verified using `810716384126.dkr.ecr.us-east-1.amazonaws.com/coworking:1.0.2`, exposed via a Kubernetes LoadBalancer on port `5153`. PostgreSQL remains internal on port `5432`.
 
-## Build and deployment
+## CI/CD pipeline: GitHub → CodeBuild → Amazon ECR
 
-The source repository is hosted on GitHub, and successful AWS CodeBuild builds have produced versioned images published to Amazon ECR.
-**The two documented successful CodeBuild builds were initiated manually. GitHub PAT authentication and a push webhook have since been configured, but a successful automatically triggered build has not yet been verified.**
-The Flask and PostgreSQL workloads are managed as separate Kubernetes Deployments and Services.
-Non-sensitive database settings come from a ConfigMap, while the password is referenced from a Kubernetes Secret and is not committed to this repository.
-PostgreSQL uses a `5Gi` persistent volume claim backed by the Amazon EBS CSI driver with gp3 storage.
-The Flask deployment defines CPU and memory requests and limits as well as liveness and readiness probes.
+The `main` branch is connected to AWS CodeBuild through a GitHub push webhook. The build instructions in [buildspec.yml](buildspec.yml) authenticate to ECR, build `analytics/`, tag each image as `1.0.$CODEBUILD_BUILD_NUMBER`, and push the image to the `coworking` ECR repository.
 
-## Validation
+**Automatic triggering is verified.** In the AWS CodeBuild history, runs **#4 and #5** completed successfully and displayed `GitHub-Hookshot/256f04d` as the initiator (unlike earlier manually started runs). Run **#5** published image **`1.0.5`**. Its logs show Docker layers `Pushed`, an image digest, `Image published successfully`, and `POST_BUILD State: SUCCEEDED`.
 
-Both workloads were verified as `1/1 Running`, and the PostgreSQL persistent volume claim was `Bound`.
-The `/health_check`, `/readiness_check`, `/api/reports/daily_usage`, and `/api/reports/user_visits` endpoints returned HTTP 200 during testing.
-Amazon CloudWatch Container Insights collects application logs in `/aws/containerinsights/coworking-eks/application`, including HTTP 200 health checks and periodic `INFO in app` entries.
-See the [screenshout folder](screenshout/README.md) for 12 uploaded screenshots covering Kubernetes, CloudWatch, Amazon ECR, and successful CodeBuild builds; the CodeBuild ECR-push log screenshot and automatic GitHub trigger remain outstanding.
+The existing Kubernetes deployment uses the previously validated image `1.0.2`; publishing `1.0.5` demonstrates the image CI pipeline, **not** an automatic deployment update to EKS.
 
+## Kubernetes deployment
+
+The deployed application and database use separate Deployments and Services:
+- [Flask deployment](deployment/coworking-deployment.yaml) and [LoadBalancer Service](deployment/coworking-service.yaml)
+- [PostgreSQL deployment](deployment/postgresql-deployment.yaml) and [ClusterIP Service](deployment/postgresql-service.yaml)
+- [Database ConfigMap](deployment/db-configmap.yaml), an external Kubernetes Secret for the password, and a persistent `5Gi` PostgreSQL volume on EBS gp3
+
+The `deployment/coworking.yaml` and `deployment/configmap.yaml` files are **original starter templates containing placeholders**, not the manifests used for the demonstrated deployment. Never apply these placeholder files directly.
+
+The Flask deployment specifies CPU/memory requests and limits, and liveness/readiness probes.
+
+## Verified results
+
+Both workloads were observed at `1/1 Running`; the PostgreSQL persistent volume claim was `Bound`. The `/health_check`, `/readiness_check`, `/api/reports/daily_usage`, and `/api/reports/user_visits` endpoints returned HTTP 200. CloudWatch Container Insights recorded Flask application log events.
+
+The [submission evidence index](screenshout/README.md) links Kubernetes, ECR, CodeBuild, and CloudWatch evidence. [Kubernetes verification transcript](screenshout/kubernetes-verification-2026-10-23.md) provides supplementary command output, not substitutes for screenshots.
+
+### Useful validation commands
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name coworking-eks
@@ -32,12 +40,6 @@ kubectl describe deployment coworking
 kubectl describe svc postgresql-service
 ```
 
-## GitHub webhook verification
+## Engineering notes and costs
 
-On October 23, 2026, a push webhook targeting AWS CodeBuild was configured for the `main` branch, and GitHub reported a successful initial webhook delivery. A subsequent commit was made to test automatic triggering. **A GitHub-initiated CodeBuild run is not yet confirmed**, because the AWS training account denied `codebuild:ListBuildsForProject` under policy `voc-cancel-cred`.
-
-## Engineering decisions and cost
-
-The demonstration runs on a `t3.medium` worker node with resource limits to keep the workload small.
-EKS, EC2, EBS, CloudWatch, and the LoadBalancer may incur AWS charges until the environment is cleaned up.
-For a production release I would add automatic CI triggering, automated tests, and infrastructure as code once the required permissions are available.
+This demonstration uses a `t3.medium` worker node. A production implementation would add automated tests, infrastructure-as-code validation, deployment-stage approvals, and stronger monitoring. EKS, EC2, EBS, CloudWatch, and the LoadBalancer may incur charges until cleaned up after the required evidence is saved.
