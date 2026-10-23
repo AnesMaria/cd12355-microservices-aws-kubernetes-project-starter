@@ -1,33 +1,40 @@
-# Udacity submission evidence
+# Udacity evidence — Coworking Space Service
 
-This folder documents evidence from the AWS EKS coworking project, collected on **October 23, 2026**.
+This folder holds the screenshots supporting the submitted AWS EKS project, together with a checklist of rubric evidence still needed for a resubmission.
 
-## CloudWatch Container Insights screenshots
+## CloudWatch — screenshots already uploaded
 
-The following three original screenshots have been prepared for upload to this folder:
+1. [CloudWatch log groups](cloudwatch-01-log-groups.png) — CodeBuild and Container Insights log groups.
+2. [EKS application log group](cloudwatch-02-application-log-group.png) — `/aws/containerinsights/coworking-eks/application`.
+3. [Flask log events](cloudwatch-03-flask-log-events.png) — timestamps and recurring Flask application events.
 
-| Filename | What the screenshot demonstrates |
-| --- | --- |
-| `cloudwatch-01-log-groups.png` | Existing CodeBuild and EKS Container Insights log groups |
-| `cloudwatch-02-application-log-group.png` | The `/aws/containerinsights/coworking-eks/application` log group |
-| `cloudwatch-03-flask-log-events.png` | Timestamped Flask `INFO in app` events and requests collected in CloudWatch |
+## Kubernetes — original terminal screenshots needed
 
-**Image upload status:** PNG files must be uploaded separately to this folder; this page alone is not a substitute for screenshots.
+The reviewer specifically requires **screenshots** showing the outputs of all four commands below, not only YAML files or copied terminal text:
 
-## Kubernetes screenshots to capture
+```bash
+kubectl get pods
+kubectl get svc
+kubectl describe deployment coworking
+kubectl describe svc postgresql-service
+```
 
-- `kubectl get pods`
-- `kubectl get svc`
-- `kubectl describe deployment coworking`
-- `kubectl describe svc postgresql-service`
-- `kubectl get pvc` showing `postgresql-pvc` as `Bound` at `5Gi`
+Additional useful evidence is `kubectl get pvc` displaying the `postgresql-pvc` claim as `Bound` with `5Gi` capacity.
 
-## AWS console screenshots to capture
+Suggested filenames: `kubernetes-01-pods.png`, `kubernetes-02-services.png`, `kubernetes-03-coworking-deployment.png`, `kubernetes-04-postgresql-service.png`, and `kubernetes-05-pvc.png`.
 
-- Amazon ECR `coworking` image list showing published tags
-- AWS CodeBuild `coworking-codebuild` build history showing `SUCCEEDED` builds
-- CloudWatch Container Insights Flask log stream showing periodic `INFO in app` and `HTTP 200` responses
+**Do not recreate terminal screenshots from text and present them as genuine historical captures.** If the EKS cluster was deleted, reuse original screenshots if available or redeploy a working environment to capture new ones.
 
-**Known limitation:** CodeBuild executions succeeded when launched manually; the GitHub webhook trigger remains unverified because the training IAM identity was denied the required GitHub connection authorization.
+## AWS ECR and CodeBuild — screenshots needed
 
-Do not upload Kubernetes Secrets, AWS credentials, IAM trust-policy files, or database backups as evidence.
+- `ecr-01-images.png`: ECR repository `coworking` showing pushed image tags, such as `1.0.2`.
+- `codebuild-01-success.png`: actual AWS CodeBuild run with `SUCCEEDED` status and evidence the image was pushed to ECR.
+- `codebuild-02-github-trigger.png`: **only if achieved**, a build explicitly identified as initiated automatically by a GitHub push/webhook.
+
+### Known limitation
+
+Previous CodeBuild builds succeeded **manually**. The Udacity requirement specifically asks for an **automatic GitHub-triggered** build, which has not yet been demonstrated due to denied permissions for GitHub connection/webhook authorization in the AWS training account. A successful manual run is not equivalent to an automatic trigger. If the lab still denies the connection, document the limitation honestly and seek permission or an accepted alternative rather than mislabeling a manual build.
+
+## Submission safety and cost
+
+Do not upload Kubernetes Secret values, AWS credentials, IAM policies that expose sensitive setup, or PostgreSQL database dumps. If rebuilding resources for screenshots, verify that the evaluator can view them before cleaning up EKS, EC2, EBS, and Load Balancer resources to avoid ongoing AWS charges.
